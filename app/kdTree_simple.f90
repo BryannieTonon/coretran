@@ -28,6 +28,8 @@ program geographic_network_kdtree
   integer(i32), allocatable :: degree(:)
   integer(i32), allocatable :: neighborList(:,:)
 
+  integer(i32) :: node_1, node_2
+
   type(KdTree) :: tree
   type(dArgDynamicArray) :: neighbors, da
   real(r64) :: dx, dy, dist2
@@ -68,7 +70,10 @@ program geographic_network_kdtree
         if ( (dist2 <= R*R) .and. (i /= neighbors%i%values(j))) then
             k = k + 1
             neighborList(i,k) = neighbors%i%values(j)
-            write(unidade_arquivo,formatador) i, neighbors%i%values(j)
+            node_1 = i
+            node_2 = neighbors%i%values(j)
+            call swap(node_1, node_2)
+            write(unidade_arquivo,formatador) node_1, node_2
         end if
      end do
      degree(i) = k
@@ -81,10 +86,25 @@ program geographic_network_kdtree
     end do
     close(unidade_arquivo)
 
+    call system('sort -n '//'listas-de-pares-coretran.dat'//' | uniq > '//'listas-de-pares-coretran-uniq.dat')
+
   call deallocate(x)
   call deallocate(y)
   deallocate(degree)
   deallocate(neighborList)
   call tree%deallocate()
+
+contains
+
+    subroutine swap(a, b)
+        integer(i32), intent(inout) :: a, b
+        integer(i32) :: temp
+
+        if (a > b) then
+            temp = a
+            a = b
+            b = temp
+        end if
+    end subroutine swap
 
 end program geographic_network_kdtree

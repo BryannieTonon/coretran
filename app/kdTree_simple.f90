@@ -46,12 +46,6 @@ program geographic_network_kdtree
   ! Sorteios - PERGUNTA - como trocar todo esse processo de gerar os rdn?
   call generate_random_geo(N, L, rmin, rmax, x, y, raio)
 
-open(unit=unidade_arquivo,file='coordenadas-raio-coretran.dat',action='write',status='unknown')
-do i=1 , N
-    write(unidade_arquivo,formatador2) x(i), y(i), raio(i)
-end do
-close(unidade_arquivo)
-
   ! Constrói KD-Tree
   tree = KdTree(x, y)
 
@@ -79,6 +73,13 @@ close(unidade_arquivo)
      end do
      degree(i) = k
     end do
+    close(unidade_arquivo)
+
+    open(unit=unidade_arquivo,file='coordenadas-raio-coretran.dat',action='write',status='unknown')
+    do i=1 , N
+        write(unidade_arquivo,formatador2) x(i), y(i), raio(i), degree(i)
+    end do
+    close(unidade_arquivo)
 
   call deallocate(x)
   call deallocate(y)

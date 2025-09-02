@@ -11,6 +11,9 @@ program geographic_network_kdtree
 
   implicit none
 
+  ! COMANDO PARA COMPILAR - gfortran -I./include app/mod_gerador.f90 app/kdTree_simple.f90 ./lib/libcoretran.so -o kdTree_simple -Wl,-rpath=./lib
+  ! ./kdTree_simple
+
   integer(i32), parameter :: N = 30 ! Num de vértices
   real(r64), parameter :: L = 10.0_r64 ! Tamanho do quadrado
   real(r64), parameter :: rmin = 0.1_real64

@@ -77,7 +77,7 @@ program geographic_network_kdtree
 
     open(unit=unidade_arquivo,file='coordenadas-raio-coretran.dat',action='write',status='unknown')
     do i=1 , N
-        write(unidade_arquivo,formatador2) x(i), y(i), raio(i), degree(i)
+        write(unidade_arquivo,formatador2) degree(i), x(i), y(i), raio(i)
     end do
     close(unidade_arquivo)
 

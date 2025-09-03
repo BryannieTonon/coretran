@@ -5,48 +5,54 @@ program geographic_network_kdtree
   use m_random, only: rngUniform
   use m_KdTree, only: KdTree, KdTreeSearch
   use dArgDynamicArray_class, only: dArgDynamicArray
-  use rdn_mod
+  use rndgen_mod
   !use m_KdTree, only: KdTree, KdTreeSearch
   !use dArgDynamicArray_Class, only: dArgDynamicArray
 
   implicit none
 
-  ! COMANDO PARA COMPILAR - gfortran -I./include app/mod_gerador.f90 app/kdTree_simple.f90 ./lib/libcoretran.so -o kdTree_simple -Wl,-rpath=./lib
+  ! COMANDO PARA COMPILAR - gfortran -I./include app/rndgen.f90 app/kdTree_simple.f90 ./lib/libcoretran.so -o kdTree_simple -Wl,-rpath=./lib
   ! ./kdTree_simple
 
-  integer(i32), parameter :: N = 30 ! Num de vértices
-  real(r64), parameter :: L = 10.0_r64 ! Tamanho do quadrado
-  real(r64), parameter :: rmin = 0.1_real64
-  real(r64), parameter :: rmax = L / 5.0_real64
+  integer(i32), parameter :: N = 10 ! Num de vértices
+  real(r64), parameter :: L = 500.0_r64 ! Tamanho do quadrado
+  real(r64), parameter :: rmin = 0.1_r64
+  real(r64), parameter :: rmax = L / 2.0_r64
   real(r64) ::  R ! Raio
-  integer(i32) :: i, j, k, unidade_arquivo
   character(len=*), parameter :: formatador = '(*(g0,x))'
-  character(len=*), parameter :: formatador2 = '(*(g0,1X))'
-
-
+  integer(i32) :: node_1, node_2
+  real(r64) :: dx, dy, dist2
+  integer(i32) :: i, j, k, unidade_arquivo
   real(r64), allocatable :: x(:), y(:), raio(:)
   integer(i32), allocatable :: degree(:)
   integer(i32), allocatable :: neighborList(:,:)
-
-  integer(i32) :: node_1, node_2
-
+  
+  integer :: seed = 294727492  
   type(KdTree) :: tree
   type(dArgDynamicArray) :: neighbors, da
-  real(r64) :: dx, dy, dist2
-
+  type(rndgen) :: rnd
   type(KdTreeSearch) :: search
 
   ! Alocação e sorteio
-  
-  call allocate(x, N) ! função do coretran
+  call rnd%init(seed)
+  call allocate(x, N) 
   call allocate(y, N)
   allocate(degree(N), raio(N))
   allocate(neighborList(N,N))
   neighborList = 0
   degree = 0
 
-  ! Sorteios - PERGUNTA - como trocar todo esse processo de gerar os rdn?
-  call generate_random_geo(N, L, rmin, rmax, x, y, raio)
+! Sorteios 
+!generator%rnd_array(n) for a real array with numbers in range [0,1) with size n
+!generator%rnd_array(n,i1,i2) for a integer array with numbers in the range [i1, i2] with size n
+!generator%rnd_array(n,r1,r2) for a real array with numbers in the range [r1, r2) with size n
+
+! RAIO
+  raio = rnd%rnd_array(N,rmin,rmax)
+! COORDENADAS
+x = rnd%rnd_array(N,0.0_r64,L)
+y = rnd%rnd_array(N,0.0_r64,L)
+
 
   ! Constrói KD-Tree
   tree = KdTree(x, y)
@@ -55,7 +61,7 @@ program geographic_network_kdtree
 !!da = search%kNearest(tree, x, y, [z], xQuery = 0.d0, yQuery = 0.d0, [zQuery = 0.d0], k = 10) 
 !!! Search for all points within a given distance
 !!da = search%kNearest(tree, x, y, [z], xQuery = 0.d0, yQuery = 0.d0, [zQuery = 0.d0], radius = 10.d0)
-    open(unit=unidade_arquivo,file='listas-de-pares-coretran.dat',action='write',status='unknown')
+open(newunit=unidade_arquivo,file='listas-de-pares-coretran.dat',action='write',status='unknown')
 
   ! Busca vizinhos dentro dentro de um raio R
   do i = 1, N ! Pega todos os pontos próximos (k=N-1) e filtra pelo raio
@@ -80,13 +86,13 @@ program geographic_network_kdtree
     end do
     close(unidade_arquivo)
 
-    open(unit=unidade_arquivo,file='coordenadas-raio-coretran.dat',action='write',status='unknown')
+    open(newunit=unidade_arquivo,file='coordenadas-raio-coretran.dat',action='write',status='unknown')
     do i=1 , N
-        write(unidade_arquivo,formatador2) degree(i), x(i), y(i), raio(i)
+        write(unidade_arquivo,formatador) degree(i), x(i), y(i), raio(i)
     end do
     close(unidade_arquivo)
 
-    call system('sort -n '//'listas-de-pares-coretran.dat'//' | uniq > '//'listas-de-pares-coretran-uniq.dat')
+    call system('sort -n '//'listas-de-pares-coretran.dat'//' | uniq > '//'Lfixo-500-10-2-uniq.dat')
 
   call deallocate(x)
   call deallocate(y)

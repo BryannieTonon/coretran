@@ -15,7 +15,7 @@ program geographic_network_kdtree
 
     ! gfortran -I./include app/rndgen.f90 app/read_tools.f90 app/kdTree_simple.f90 ./lib/libcoretran.so -o kdTree_simple -Wl,-rpath=./lib
     ! gfortran -I./include app/rndgen.f90 app/tictoc_mod.f90  app/read_tools.f90 app/kdTree_simple.f90 ./lib/libcoretran.so -o kdTree_simple -Wl,-rpath=./lib  
-  ! ./kdTree_simple
+    ! ./kdTree_simple
 
     ! Mantendo um fixo e o outro variando
         ! for N in {100..700..20}; do     L=500;     ./kdTree_simple $L $N; done
@@ -27,6 +27,7 @@ program geographic_network_kdtree
         ! for N in {100..10000..20}; do for L in {100..1000..100}; do ./kdTree_simple $L $N done done
         ! for N in {5500..10000..500}; do     for L in {500..1000..500}; do         for F in {5..20..5}; do             ./kdTree_simple $L $N $F;         done;     done; done
 
+  
   ! Parâmetros
   !integer(i32), parameter :: N = 1000 ! Num de vértices
   !real(r64), parameter :: L = 500.0_r64 ! Tamanho do quadrado
@@ -63,7 +64,8 @@ program geographic_network_kdtree
     N = read_int(2)
     !fator_escala = read_int(3)
     id_amostra = read_int(3)
-    fator_escala = 12
+    fator_escala = 6
+
     rmax = L / (1.0_dp*fator_escala)
     
     seed = 294727492 + id_amostra
@@ -95,9 +97,8 @@ program geographic_network_kdtree
 !arestas = 0
 !n_arestas = 0
 
-open(newunit=unidade_arquivo,file='lista-de-pares-coretran-fator12.dat',action='write',status='unknown')
-
-! open(newunit=unidade_tempo, file="L_"// aux_name_int(int_L)// &
+open(newunit=unidade_arquivo,file='lista-de-pares-coretran-fator-8-SIA.dat',action='write',status='unknown')
+!open(newunit=unidade_tempo, file="tempo-CPU-L_"// aux_name_int(int_L)// &
 !         "-N_"// aux_name_int(N)// "-"//aux_name_int(int_fatorescala) // &
 !         "kdtree.dat",position="append",action='write',status='unknown')
 
@@ -132,7 +133,8 @@ do i = 1, N ! Pega todos os pontos próximos (k=N-1) e filtra pelo raio
     !call ctimer%toc()
     close(unidade_arquivo)
     !write(unidade_tempo, formatador) N, int(L), fator_escala, ctimer%t_tot
-    !close(unidade_tempo)
+    close(unidade_tempo)
+
     ! PARTE DE ORDENAR AS COLUNAS
         !allocate(arestas_temp(n_arestas,2))
         !arestas_temp(:,:) = arestas(1:n_arestas,:)
@@ -152,22 +154,22 @@ do i = 1, N ! Pega todos os pontos próximos (k=N-1) e filtra pelo raio
 
     ! Coordendas e raios para plotar a rede
     !if (N==100) then
-    open(newunit=unidade_arquivo,file='coordenadas-raio-coretran-fator12.dat',action='write',status='unknown')
+    open(newunit=unidade_arquivo,file='coordenadas-raio-coretran-fator-8-SIA.dat',action='write',status='unknown')
     do i=1 , N
         write(unidade_arquivo,formatador) degree(i), x(i), y(i), raio(i)
     end do
     close(unidade_arquivo)
-    !end if
+    
 
     ! LISTA DE ARESTA
     !comando = 'sort -n -k1,1 -k2,2 Nfixo_500-L_100-2-uniq.dat | uniq > Nfixo_500-L_100-2-TESTE.dat'
     
-    comando = 'sort -n -k1,1 -k2,2 lista-de-pares-coretran.dat | uniq > ' // &
+    comando = 'sort -n -k1,1 -k2,2 lista-de-pares-coretran-fator-8-SIA.dat| uniq > ' // &
          'L_'// aux_name_int(int_L)// &
           '-N_'// aux_name_int(N)// &
           '-' //aux_name_int(int_fatorescala) // '.dat'
 
-    !call system(trim(comando))
+    call system(trim(comando))
 
     ! esse aqui deu errado
     !call system('sort -n '//'listas-de-pares-coretran.dat'//' | uniq > '//'Lfixo_'//aux_name_int(L)//'-N_'//aux_name_int(N)//'-'//aux_name_int(int_fatorescala)//'-uniq.dat')

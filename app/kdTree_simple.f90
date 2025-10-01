@@ -1,15 +1,15 @@
 program geographic_network_kdtree
-  use variableKind, only: i32, r64
-  use m_allocate, only: allocate
-  use m_deallocate, only: deallocate
-  use m_random, only: rngUniform
-  use m_KdTree, only: KdTree, KdTreeSearch
-  use dArgDynamicArray_class, only: dArgDynamicArray
-  use rndgen_mod
-  use read_tools
-  use tictoc_mod
- 
-  implicit none
+use variableKind, only: i32, r64
+use m_allocate, only: allocate
+use m_deallocate, only: deallocate
+use m_random, only: rngUniform
+use m_KdTree, only: KdTree, KdTreeSearch
+use dArgDynamicArray_class, only: dArgDynamicArray
+use rndgen_mod
+use read_tools
+!use tictoc_mod
+
+implicit none
 
   ! COMANDOs PARA COMPILAR 
 
@@ -43,32 +43,33 @@ program geographic_network_kdtree
   real(r64), allocatable :: x(:), y(:), raio(:)
   integer(i32), allocatable :: degree(:)
   integer(i32), allocatable :: neighborList(:,:) !, arestas(:,:), arestas_temp(:,:)
-  
   character(len=200) :: comando
   integer :: seed 
+
   type(KdTree) :: tree
   type(dArgDynamicArray) :: neighbors, da
   type(rndgen) :: rnd
   type(KdTreeSearch) :: search
-  type(tictoc_t)    :: ctimer
+  
+  !type(tictoc_t)    :: ctimer
   
   ! INPUT
-    if (command_argument_count() /= 3) then
-        print*, 'Faltam argumentos:'
-        print*,"for N in {100..500..10}; do L=15"
-        print*, "./kdTree_simple $N $L done"
-        stop
-    end if
+if (command_argument_count() /= 4) then
+    print*, 'Faltam argumentos:'
+    print*,"for N in {100..500..10}; do L=15"
+    print*, "./kdTree_simple $N $L done"
+    stop
+end if
 
-    L = read_int(1)
-    N = read_int(2)
-    !fator_escala = read_int(3)
-    id_amostra = read_int(3)
-    fator_escala = 6
+L = read_int(1)
+N = read_int(2)
+fator_escala = read_int(3)
+id_amostra = read_int(4)
+!fator_escala = 4
 
-    rmax = L / (1.0_dp*fator_escala)
-    
-    seed = 294727492 + id_amostra
+rmax = L / (1.0_dp*fator_escala)
+
+seed = 294727492 + id_amostra
     
 ! Alocação e sorteio
   call rnd%init(seed)
@@ -91,22 +92,19 @@ program geographic_network_kdtree
 ! Constrói KD-Tree
     tree = KdTree(x, y)
 
-! ARRAY arestas
-!num = N*N
-!allocate(arestas(num,2))
-!arestas = 0
-!n_arestas = 0
 
-open(newunit=unidade_arquivo,file='lista-de-pares-coretran-fator-8-SIA.dat',action='write',status='unknown')
+open(newunit=unidade_arquivo,file='lista-de-pares.dat',action='write',status='unknown')
 !open(newunit=unidade_tempo, file="tempo-CPU-L_"// aux_name_int(int_L)// &
 !         "-N_"// aux_name_int(N)// "-"//aux_name_int(int_fatorescala) // &
 !         "kdtree.dat",position="append",action='write',status='unknown')
 
-! Busca vizinhos dentro dentro de um raio R
+
 !call ctimer%reset()
 !call ctimer%tic()
+
 do i = 1, N ! Pega todos os pontos próximos (k=N-1) e filtra pelo raio
     R = raio(i)
+    ! vizinhos ordenados pela distância
     neighbors = search%kNearest(tree, x, y, xQuery = x(i), yQuery = y(i), radius = R)
     k = 0
     do j = 1, neighbors%size()
@@ -114,77 +112,49 @@ do i = 1, N ! Pega todos os pontos próximos (k=N-1) e filtra pelo raio
         dy = y(neighbors%i%values(j)) - y(i)
         dist2 = dx*dx + dy*dy
 
+        ! REGRAS DE CONECTIVIDADE
+        ! 1) Raio Fixo
+
         if ( (dist2 <= R*R) .and. (i /= neighbors%i%values(j))) then
             k = k + 1
             neighborList(i,k) = neighbors%i%values(j)
             node_1 = i
             node_2 = neighbors%i%values(j)
-            
-
             call swap(node_1, node_2)
-            !n_arestas = n_arestas + 1
-            !arestas(n_arestas,1) = node_1
-            !arestas(n_arestas,2) = node_2
             write(unidade_arquivo,formatador) node_1, node_2
         end if
     end do
     degree(i) = k
-    end do
-    !call ctimer%toc()
-    close(unidade_arquivo)
-    !write(unidade_tempo, formatador) N, int(L), fator_escala, ctimer%t_tot
-    close(unidade_tempo)
-
-    ! PARTE DE ORDENAR AS COLUNAS
-        !allocate(arestas_temp(n_arestas,2))
-        !arestas_temp(:,:) = arestas(1:n_arestas,:)
-        !call move_alloc(arestas_temp, arestas)
-    
-        !call ordena_vertices(arestas, n_arestas)
-
-        ! Arquivo da lista de arestas
-        !open(newunit=unidade_arquivo,file='L_'// aux_name_int(int_L)// &
-        !      '-N_'// aux_name_int(N)// &
-        !      '-' //aux_name_int(int_fatorescala) // '.dat',action='write',status='unknown')
-
-        !call escrever_lista(arestas,n_arestas,unidade_arquivo)
-
-        !close(unidade_arquivo)
+end do
+!call ctimer%toc()
+close(unidade_arquivo)
+!write(unidade_tempo, formatador) N, int(L), fator_escala, ctimer%t_tot
+!close(unidade_tempo)
 
 
-    ! Coordendas e raios para plotar a rede
-    !if (N==100) then
-    open(newunit=unidade_arquivo,file='coordenadas-raio-coretran-fator-8-SIA.dat',action='write',status='unknown')
-    do i=1 , N
-        write(unidade_arquivo,formatador) degree(i), x(i), y(i), raio(i)
-    end do
-    close(unidade_arquivo)
-    
+! SAÍDAS
 
-    ! LISTA DE ARESTA
-    !comando = 'sort -n -k1,1 -k2,2 Nfixo_500-L_100-2-uniq.dat | uniq > Nfixo_500-L_100-2-TESTE.dat'
-    
-    comando = 'sort -n -k1,1 -k2,2 lista-de-pares-coretran-fator-8-SIA.dat| uniq > ' // &
+! Coordendas e raios para plotar a rede
+! open(newunit=unidade_arquivo,file='coordenadas-raio-simples-teste.dat',action='write',status='unknown')
+! do i=1 , N
+!     write(unidade_arquivo,formatador) degree(i), x(i), y(i), raio(i)
+! end do
+! close(unidade_arquivo)
+
+! lista de aresta
+!comando = 'sort -n -k1,1 -k2,2 lista-de-pares.dat | uniq > lista-de-pares-simples-metricas.dat'
+ comando = 'sort -n -k1,1 -k2,2 lista-de-pares.dat| uniq > ' // &
          'L_'// aux_name_int(int_L)// &
-          '-N_'// aux_name_int(N)// &
-          '-' //aux_name_int(int_fatorescala) // '.dat'
+         '-N_'// aux_name_int(N)// &
+         '-' //aux_name_int(int_fatorescala) //'-' //aux_name_int(id_amostra) //'-simples.dat'
+call system(trim(comando))
 
-    call system(trim(comando))
 
-    ! esse aqui deu errado
-    !call system('sort -n '//'listas-de-pares-coretran.dat'//' | uniq > '//'Lfixo_'//aux_name_int(L)//'-N_'//aux_name_int(N)//'-'//aux_name_int(int_fatorescala)//'-uniq.dat')
-    !call system( &
-   !'sort -n listas-de-pares-coretran.dat | uniq > ' // &
-   !'Nfixo_'// aux_name_int(N) // &
-   !'-L_'// aux_name_int(int_L) // &
-   !'-'// aux_name_int(int_fatorescala) // &
-   !'-arquivo.dat' )
-
-  call deallocate(x)
-  call deallocate(y)
-  deallocate(degree)
-  deallocate(neighborList)
-  call tree%deallocate()
+call deallocate(x)
+call deallocate(y)
+deallocate(degree)
+deallocate(neighborList)
+call tree%deallocate()
 
 contains
 

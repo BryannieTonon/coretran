@@ -6,7 +6,6 @@ use m_random, only: rngUniform
 use m_KdTree, only: KdTree, KdTreeSearch
 use dArgDynamicArray_class, only: dArgDynamicArray
 use rndgen_mod
-use rndgenPL_mod
 use read_tools
 !use tictoc_mod
 
@@ -32,10 +31,10 @@ implicit none
 ! Parâmetros
 integer(i32) :: node_1, node_2, N, fator_escala
 integer(i32) :: i, j, k, unidade_arquivo, unidade_tempo, int_L, int_fatorescala, num, id_amostra
-integer :: seed 
-integer(i32) :: caso, raio_min, raio_max
+integer(i32) :: seed 
+integer(i32) :: probabilidade, distribuicao, raio_min, raio_max
 
-real(r64), parameter :: rmin = 0.1_r64
+real(r64), parameter :: rmin = 10.0_r64
 real(r64) :: dx, dy, dist, dist2, dist_min, L, rmax, R, p_max, pj
 real(r64), parameter :: gamma = 2.5
 
@@ -44,7 +43,7 @@ integer(i32), allocatable :: degree(:)
 integer(i32), allocatable :: neighborList(:,:) 
 
 character(len=*), parameter :: formatador = '(*(g0,x))'
-character(len=200) :: comando
+character(len=200) :: comando, dist_aux
 
 
 ! Tipos
@@ -52,7 +51,6 @@ type(KdTree) :: tree
 type(dArgDynamicArray) :: neighbors, da
 type(rndgen) :: rnd, rnd_a
 type(KdTreeSearch) :: search
-type(rndgenPL) :: rndPL
 !type(tictoc_t)    :: ctimer
   
 ! INPUT
@@ -74,6 +72,7 @@ seed = 294727492 + id_amostra
     
 ! Alocação e sorteio
 call rnd%init(seed)
+call rnd_a%init(seed)
 
 allocate(x(N), y(N), degree(N), raio(N), a(N))
 allocate(neighborList(N,N))
@@ -84,17 +83,21 @@ int_fatorescala = int(fator_escala)
 int_L = int(L)
 
 ! Raio de influência
+distribuicao = 2
 
-!raio = rnd%rnd_array(N,rmin,rmax) ! Uniforme
+selectcase(distribuicao)
 
-raio_min = 1
-raio_max = L/fator_escala
-call rndPL%initPL(raio_min,raio_max, gamma,seed) ! Lei de 
-print*, 'oi'
+case(1) ! Distribuição Uniforme
+    raio = rnd%rnd_array(N,rmin,rmax) ! Uniforme
+    dist_aux = "un"
+case(2) ! Distribuição Lei de Potência
+    do i = 1, N 
+        raio(i) = (rnd%rnd() * (rmax**(1.0_dp - gamma) - rmin**(1.0_dp - gamma)) &
+        + rmin**(1.0_dp - gamma) )**(1.0_dp / (1.0_dp - gamma))
+    end do
+    dist_aux = "pw_"//aux_name_real(gamma)
+end select
 
-raio = rndPL%rndPL_array(N)
-
-print*, 'tchau'
 ! Coordenadas dos vértices
 x = rnd%rnd_array(N,0.0_r64,L)
 y = rnd%rnd_array(N,0.0_r64,L)
@@ -102,13 +105,13 @@ y = rnd%rnd_array(N,0.0_r64,L)
 ! Constrói KD-Tree
 tree = KdTree(x, y)
 
-! Casos: (1) simples; (2) depedência com a distância e (3) atratividade
 
-caso = 1
-selectcase(caso) 
+! Casos: (1) simples; (2) depedência com a distância e (3) atratividade
+probabilidade = 3
+selectcase(probabilidade) 
 
 case(1) ! Simples ################################################################################################################
-
+ 
     open(newunit=unidade_arquivo,file='lista-de-pares.dat',action='write',status='unknown')
     !open(newunit=unidade_tempo, file="tempo-CPU-L_"// aux_name_int(int_L)// &
     ! "-N_"// aux_name_int(N)// "-"//aux_name_int(int_fatorescala) // &
@@ -143,18 +146,19 @@ case(1) ! Simples ##############################################################
     ! SAÍDAS
 
     ! Coordendas e raios para plotar a rede
-    ! open(newunit=unidade_arquivo,file='coordenadas-raio-simples.dat',action='write',status='unknown')
-    ! do i=1 , N
-    !     write(unidade_arquivo,formatador) degree(i), x(i), y(i), raio(i)
-    ! end do
-    ! close(unidade_arquivo)
+    open(newunit=unidade_arquivo,file='coordenadas-raio-simples-'//trim(dist_aux)// &
+            '-' //aux_name_int(int_fatorescala)//'.dat',action='write',status='unknown')
+    do i = 1 , N
+        write(unidade_arquivo,formatador) degree(i), x(i), y(i), raio(i)
+    end do
+    close(unidade_arquivo)
 
     ! lista de aresta
     !comando = 'sort -n -k1,1 -k2,2 lista-de-pares.dat | uniq > lista-de-pares-simples-metricas.dat'
     comando = 'sort -n -k1,1 -k2,2 lista-de-pares.dat| uniq > ' // &
             'L_'// aux_name_int(int_L)// &
             '-N_'// aux_name_int(N)// &
-            '-' //aux_name_int(int_fatorescala) //'-' //aux_name_int(id_amostra) //'-simples.dat'
+            '-' //aux_name_int(int_fatorescala) //'-' //aux_name_int(id_amostra) //'-'//trim(dist_aux)//'-simples.dat'
     call system(trim(comando))
 
     !write(unidade_tempo, formatador) N, int(L), fator_escala, ctimer%t_tot
@@ -216,18 +220,19 @@ case(2) ! Dependente da distância #############################################
     ! SAÍDAS
 
     ! Coordendas e raios para plotar a rede
-    ! open(newunit=unidade_arquivo,file='coordenadas-raio-simples.dat',action='write',status='unknown')
-    ! do i=1 , N
-    !     write(unidade_arquivo,formatador) degree(i), x(i), y(i), raio(i)
-    ! end do
-    ! close(unidade_arquivo)
+    open(newunit=unidade_arquivo,file='coordenadas-raio-inversamente-'//trim(dist_aux) // &
+            '-' //aux_name_int(int_fatorescala)//'.dat',action='write',status='unknown')
+    do i = 1 , N
+        write(unidade_arquivo,formatador) degree(i), x(i), y(i), raio(i)
+    end do
+    close(unidade_arquivo)
 
     ! lista de aresta
     !comando = 'sort -n -k1,1 -k2,2 lista-de-pares.dat | uniq > lista-de-pares-simples-metricas.dat'
     comando = 'sort -n -k1,1 -k2,2 lista-de-pares.dat| uniq > ' // &
             'L_'// aux_name_int(int_L)// &
             '-N_'// aux_name_int(N)// &
-            '-' //aux_name_int(int_fatorescala) //'-' //aux_name_int(id_amostra) //'-inversamente.dat'
+            '-' //aux_name_int(int_fatorescala) //'-' //aux_name_int(id_amostra) //'-'//trim(dist_aux)//'-inversamente.dat'
     call system(trim(comando))
 
     deallocate(x, y, degree)
@@ -261,10 +266,20 @@ case(3) ! Atratividade #########################################################
     end do
     close(unidade_arquivo)
 
+    ! Saídas
+
+    ! Coordendas e raios para plotar a rede
+    open(newunit=unidade_arquivo,file='coordenadas-raio-atratividade-'//trim(dist_aux) // &
+            '-' //aux_name_int(int_fatorescala)//'.dat',action='write',status='unknown')
+    do i = 1 , N
+        write(unidade_arquivo,formatador) degree(i), x(i), y(i), raio(i)
+    end do
+    close(unidade_arquivo)
+
     comando = 'sort -n -k1,1 -k2,2 lista-de-pares.dat| uniq > ' // &
             'L_'// aux_name_int(int_L)// &
             '-N_'// aux_name_int(N)// &
-            '-' //aux_name_int(int_fatorescala) //'-' //aux_name_int(id_amostra) //'-atratividade.dat'
+            '-' //aux_name_int(int_fatorescala) //'-' //aux_name_int(id_amostra) //'-'//trim(dist_aux)//'-atratividade.dat'
     call system(trim(comando))
     
     deallocate(x, y, degree)

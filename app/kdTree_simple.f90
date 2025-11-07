@@ -34,9 +34,10 @@ integer(i32) :: i, j, k, unidade_arquivo, unidade_tempo, int_L, int_fatorescala,
 integer(i32) :: seed 
 integer(i32) :: probabilidade, distribuicao, raio_min, raio_max
 
-real(r64), parameter :: rmin = 10.0_r64
+!real(r64), parameter :: rmin = 15.0_r64
+real(r64) :: rmin
 real(r64) :: dx, dy, dist, dist2, dist_min, L, rmax, R, p_max, pj
-real(r64), parameter :: gamma = 2.5
+real(r64), parameter :: gamma = 3.0
 
 real(r64), allocatable :: x(:), y(:), raio(:), a(:)
 integer(i32), allocatable :: degree(:)
@@ -54,7 +55,7 @@ type(KdTreeSearch) :: search
 !type(tictoc_t)    :: ctimer
   
 ! INPUT
-if (command_argument_count() /= 4) then
+if (command_argument_count() /= 5) then
     print*, 'Faltam argumentos:'
     print*,"for N in {100..500..10}; do L=15"
     print*, "./kdTree_simple $N $L done"
@@ -65,6 +66,7 @@ L = read_int(1)
 N = read_int(2)
 fator_escala = read_int(3)
 id_amostra = read_int(4)
+rmin = read_int(5)
 
 rmax = L / (1.0_dp*fator_escala)
 
@@ -95,7 +97,7 @@ case(2) ! Distribuição Lei de Potência
         raio(i) = (rnd%rnd() * (rmax**(1.0_dp - gamma) - rmin**(1.0_dp - gamma)) &
         + rmin**(1.0_dp - gamma) )**(1.0_dp / (1.0_dp - gamma))
     end do
-    dist_aux = "pw_"//aux_name_real(gamma)
+    dist_aux = "pw_"//aux_name_real(gamma)//"_"//aux_name_real(rmin)
 end select
 
 ! Coordenadas dos vértices
@@ -146,12 +148,12 @@ case(1) ! Simples ##############################################################
     ! SAÍDAS
 
     ! Coordendas e raios para plotar a rede
-    open(newunit=unidade_arquivo,file='coordenadas-raio-simples-'//trim(dist_aux)// &
-            '-' //aux_name_int(int_fatorescala)//'.dat',action='write',status='unknown')
-    do i = 1 , N
-        write(unidade_arquivo,formatador) degree(i), x(i), y(i), raio(i)
-    end do
-    close(unidade_arquivo)
+    ! open(newunit=unidade_arquivo,file='coordenadas-raio-simples-'//trim(dist_aux)// &
+    !         '-' //aux_name_int(int_fatorescala)//'.dat',action='write',status='unknown')
+    ! do i = 1 , N
+    !     write(unidade_arquivo,formatador) degree(i), x(i), y(i), raio(i)
+    ! end do
+    ! close(unidade_arquivo)
 
     ! lista de aresta
     !comando = 'sort -n -k1,1 -k2,2 lista-de-pares.dat | uniq > lista-de-pares-simples-metricas.dat'
@@ -219,13 +221,13 @@ case(2) ! Dependente da distância #############################################
 
     ! SAÍDAS
 
-    ! Coordendas e raios para plotar a rede
-    open(newunit=unidade_arquivo,file='coordenadas-raio-inversamente-'//trim(dist_aux) // &
-            '-' //aux_name_int(int_fatorescala)//'.dat',action='write',status='unknown')
-    do i = 1 , N
-        write(unidade_arquivo,formatador) degree(i), x(i), y(i), raio(i)
-    end do
-    close(unidade_arquivo)
+    ! ! Coordendas e raios para plotar a rede
+    ! open(newunit=unidade_arquivo,file='coordenadas-raio-inversamente-'//trim(dist_aux) // &
+    !         '-' //aux_name_int(int_fatorescala)//'.dat',action='write',status='unknown')
+    ! do i = 1 , N
+    !     write(unidade_arquivo,formatador) degree(i), x(i), y(i), raio(i)
+    ! end do
+    ! close(unidade_arquivo)
 
     ! lista de aresta
     !comando = 'sort -n -k1,1 -k2,2 lista-de-pares.dat | uniq > lista-de-pares-simples-metricas.dat'
@@ -268,13 +270,13 @@ case(3) ! Atratividade #########################################################
 
     ! Saídas
 
-    ! Coordendas e raios para plotar a rede
-    open(newunit=unidade_arquivo,file='coordenadas-raio-atratividade-'//trim(dist_aux) // &
-            '-' //aux_name_int(int_fatorescala)//'.dat',action='write',status='unknown')
-    do i = 1 , N
-        write(unidade_arquivo,formatador) degree(i), x(i), y(i), raio(i)
-    end do
-    close(unidade_arquivo)
+    ! ! Coordendas e raios para plotar a rede
+    ! open(newunit=unidade_arquivo,file='coordenadas-raio-atratividade-'//trim(dist_aux) // &
+    !         '-' //aux_name_int(int_fatorescala)//'.dat',action='write',status='unknown')
+    ! do i = 1 , N
+    !     write(unidade_arquivo,formatador) degree(i), x(i), y(i), raio(i)
+    ! end do
+    ! close(unidade_arquivo)
 
     comando = 'sort -n -k1,1 -k2,2 lista-de-pares.dat| uniq > ' // &
             'L_'// aux_name_int(int_L)// &
